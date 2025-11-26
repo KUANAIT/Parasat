@@ -24,7 +24,7 @@ func main() {
 
 	database.Connect_DB()
 	routes.RegisterRoutes()
-	routes.RegisterAuthRoutes()
+	//routes.RegisterAuthRoutes()
 	web.SetupTemplates()
 
 	log.Println("Server started on :3000")
