@@ -33,9 +33,9 @@ func EditProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	collection, err := database.GetCollection("SSE", "users")
-	if err != nil {
-		http.Error(w, "Failed to get database collection", http.StatusInternalServerError)
+	collection := database.UserCollection
+	if collection == nil {
+		http.Error(w, "User collection not initialized", http.StatusInternalServerError)
 		return
 	}
 

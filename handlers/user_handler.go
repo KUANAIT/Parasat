@@ -16,6 +16,12 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	collection := database.UserCollection
+	if collection == nil {
+		http.Error(w, "User collection not initialized", http.StatusInternalServerError)
+		return
+	}
+
 	var userData struct {
 		Name     string `json:"name"`
 		Email    string `json:"email"`
@@ -45,14 +51,8 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	collection, err := database.GetCollection("SSE", "users")
-	if err != nil {
-		http.Error(w, "Failed to get database collection: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
 	var existingUser models.User
-	err = collection.FindOne(r.Context(), bson.M{"email": user.Email}).Decode(&existingUser)
+	err := collection.FindOne(r.Context(), bson.M{"email": user.Email}).Decode(&existingUser)
 	if err == nil {
 		http.Error(w, "User with this email already exists", http.StatusConflict)
 		return
@@ -86,6 +86,12 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetUser(w http.ResponseWriter, r *http.Request) {
+	collection := database.UserCollection
+	if collection == nil {
+		http.Error(w, "User collection not initialized", http.StatusInternalServerError)
+		return
+	}
+
 	userID := r.URL.Query().Get("user_id")
 	if userID == "" {
 		http.Error(w, "User ID is required", http.StatusBadRequest)
@@ -95,12 +101,6 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 	objectID, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
 		http.Error(w, "Invalid customer ID format", http.StatusBadRequest)
-		return
-	}
-
-	collection, err := database.GetCollection("SSE", "users")
-	if err != nil {
-		http.Error(w, "Failed to get database collection", http.StatusInternalServerError)
 		return
 	}
 
@@ -122,6 +122,12 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPut {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
+
+	collection := database.UserCollection
+	if collection == nil {
+		http.Error(w, "User collection not initialized", http.StatusInternalServerError)
 		return
 	}
 
@@ -174,12 +180,6 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 
 	updateFields["updatedat"] = time.Now()
 
-	collection, err := database.GetCollection("SSE", "users")
-	if err != nil {
-		http.Error(w, "Failed to get database collection", http.StatusInternalServerError)
-		return
-	}
-
 	result, err := collection.UpdateOne(r.Context(), bson.M{"_id": objectID}, bson.M{"$set": updateFields})
 	if err != nil {
 		http.Error(w, "Failed to update user", http.StatusInternalServerError)
@@ -202,6 +202,12 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	collection := database.UserCollection
+	if collection == nil {
+		http.Error(w, "User collection not initialized", http.StatusInternalServerError)
+		return
+	}
+
 	userID := r.URL.Query().Get("user_id")
 	if userID == "" {
 		http.Error(w, "User ID is required", http.StatusBadRequest)
@@ -211,12 +217,6 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 	objectID, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
 		http.Error(w, "Invalid customer ID format", http.StatusBadRequest)
-		return
-	}
-
-	collection, err := database.GetCollection("SSE", "users")
-	if err != nil {
-		http.Error(w, "Failed to get database collection", http.StatusInternalServerError)
 		return
 	}
 

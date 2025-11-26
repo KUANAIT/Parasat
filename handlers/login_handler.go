@@ -25,14 +25,14 @@ func LoginCustomer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	collection, err := database.GetCollection("SSE", "users")
-	if err != nil {
-		http.Error(w, "Failed to get database collection", http.StatusInternalServerError)
+	collection := database.UserCollection
+	if collection == nil {
+		http.Error(w, "User collection not initialized", http.StatusInternalServerError)
 		return
 	}
 
 	var user models.User
-	err = collection.FindOne(r.Context(), bson.M{"email": credentials.Email}).Decode(&user)
+	err := collection.FindOne(r.Context(), bson.M{"email": credentials.Email}).Decode(&user)
 	if err != nil {
 		http.Error(w, "Invalid email or password", http.StatusUnauthorized)
 		return
