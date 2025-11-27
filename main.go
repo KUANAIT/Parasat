@@ -23,8 +23,6 @@ func main() {
 		}
 	}()
 
-	database.Connect_DB()
-
 	router := gin.Default()
 	routes.RegisterRoutes(router)
 	web.SetupTemplates(router)

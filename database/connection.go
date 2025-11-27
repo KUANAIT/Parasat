@@ -11,12 +11,30 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var client *mongo.Client
+const (
+	defaultDatabaseName        = "Parasat"
+	defaultUsersCollectionName = "Users"
+)
+
+var (
+	client         *mongo.Client
+	UserCollection *mongo.Collection
+)
 
 func ConnectDB() error {
 	uri := os.Getenv("MONGODB_URI")
 	if uri == "" {
 		uri = "mongodb+srv://OSTi:eQQyp4P3elNkQf9r@cluster0.0rfodzy.mongodb.net/fitness?retryWrites=true&w=majority&appName=Cluster0"
+	}
+
+	databaseName := os.Getenv("MONGODB_DB")
+	if databaseName == "" {
+		databaseName = defaultDatabaseName
+	}
+
+	usersCollectionName := os.Getenv("MONGODB_USERS_COLLECTION")
+	if usersCollectionName == "" {
+		usersCollectionName = defaultUsersCollectionName
 	}
 
 	clientOptions := options.Client().ApplyURI(uri)
@@ -35,6 +53,7 @@ func ConnectDB() error {
 		return fmt.Errorf("failed to ping MongoDB: %w", err)
 	}
 
+	UserCollection = client.Database(databaseName).Collection(usersCollectionName)
 	log.Println("Connected to MongoDB successfully!")
 	return nil
 }
