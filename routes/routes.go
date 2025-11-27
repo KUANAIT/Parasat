@@ -18,8 +18,8 @@ func RegisterRoutes(router *gin.Engine) {
 	router.POST("/loginuser", handlers.LoginCustomer)
 
 	protected := router.Group("/", middleware.AuthRequired())
-	protected.GET("/profile", handlers.Profile)
-	protected.GET("/edit-profile", handlers.EditProfile)
-	protected.POST("/edit-profile", handlers.EditProfile)
+	//protected.GET("/profile", handlers.Profile)
+	//protected.GET("/edit-profile", handlers.EditProfile)
+	//protected.POST("/edit-profile", handlers.EditProfile)
 	protected.POST("/logout", handlers.LogoutCustomer)
 }
