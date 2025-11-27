@@ -1,20 +1,15 @@
 package web
 
-import (
-	"net/http"
-)
+import "github.com/gin-gonic/gin"
 
-func SetupTemplates() {
-	fs := http.FileServer(http.Dir("./static"))
-	http.Handle("/static/", http.StripPrefix("/static/", fs))
+func SetupTemplates(router *gin.Engine) {
+	router.Static("/static", "./static")
 
-	//http.HandleFunc("/", handlers.HomePage)
-
-	http.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "./templates/register.html")
-	})
-	http.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "./templates/login.html")
+	router.GET("/register", func(c *gin.Context) {
+		c.File("./templates/register.html")
 	})
 
+	router.GET("/login", func(c *gin.Context) {
+		c.File("./templates/login.html")
+	})
 }

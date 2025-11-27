@@ -6,50 +6,51 @@ import (
 	"Parasat/sessions"
 	"bytes"
 	"context"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"html/template"
 	"log"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func Profile(w http.ResponseWriter, r *http.Request) {
-	session, err := sessions.Get(r)
+func Profile(c *gin.Context) {
+	session, err := sessions.Get(c.Request)
 	if err != nil {
-		http.Error(w, "Failed to retrieve session", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve session"})
 		return
 	}
 
 	userID, ok := session.Values["user_id"].(string)
 	if !ok || userID == "" {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
 
 	objID, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
-		http.Error(w, "Invalid user ID", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID"})
 		return
 	}
 
 	collection := database.UserCollection
 	if collection == nil {
-		http.Error(w, "User collection not initialized", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "User collection not initialized"})
 		return
 	}
 
 	var user models.User
-	err = collection.FindOne(context.TODO(), bson.M{"_id": objID}).Decode(&user)
-	if err != nil {
-		sessions.ClearSession(w, r)
-		http.Redirect(w, r, "/login?error=session_expired", http.StatusSeeOther)
+	if err := collection.FindOne(context.TODO(), bson.M{"_id": objID}).Decode(&user); err != nil {
+		_ = sessions.ClearSession(c.Writer, c.Request)
+		c.Redirect(http.StatusSeeOther, "/login?error=session_expired")
 		return
 	}
 
 	tmpl, err := template.ParseFiles("templates/profile.html")
 	if err != nil {
 		log.Printf("template parse error: %v", err)
-		http.Error(w, "Failed to load template: "+err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load template"})
 		return
 	}
 
@@ -70,10 +71,9 @@ func Profile(w http.ResponseWriter, r *http.Request) {
 	var buf bytes.Buffer
 	if err := tmpl.Execute(&buf, data); err != nil {
 		log.Printf("template execute error: %v", err)
-		http.Error(w, "Failed to render page: "+err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to render page"})
 		return
 	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = buf.WriteTo(w)
+	c.Data(http.StatusOK, "text/html; charset=utf-8", buf.Bytes())
 }

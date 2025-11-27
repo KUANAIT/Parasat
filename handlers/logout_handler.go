@@ -3,21 +3,15 @@ package handlers
 import (
 	"Parasat/sessions"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
-func LogoutCustomer(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+func LogoutCustomer(c *gin.Context) {
+	if err := sessions.ClearSession(c.Writer, c.Request); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to clear session"})
 		return
 	}
 
-	err := sessions.ClearSession(w, r)
-	if err != nil {
-		http.Error(w, "Failed to clear session", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	http.Redirect(w, r, "/", http.StatusSeeOther)
-
+	c.Redirect(http.StatusSeeOther, "/")
 }

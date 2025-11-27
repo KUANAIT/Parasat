@@ -3,41 +3,48 @@ package middleware
 import (
 	"Parasat/sessions"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
-func AuthRequired(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		session, err := sessions.Get(r)
+func AuthRequired() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		session, err := sessions.Get(c.Request)
 		if err != nil {
-			http.Error(w, "Session error", http.StatusInternalServerError)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Session error"})
+			c.Abort()
 			return
 		}
 
 		if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusUnauthorized)
-			w.Write([]byte(`{"error": "Authentication required"}`))
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication required"})
+			c.Abort()
 			return
 		}
 
-		next(w, r)
+		if userID, ok := session.Values["user_id"].(string); ok {
+			c.Set("user_id", userID)
+		}
+
+		c.Next()
 	}
 }
-func NoAuth(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		session, err := sessions.Get(r)
+
+func NoAuth() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		session, err := sessions.Get(c.Request)
 		if err != nil {
-			http.Error(w, "Session error", http.StatusInternalServerError)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Session error"})
+			c.Abort()
 			return
 		}
 
 		if auth, ok := session.Values["authenticated"].(bool); ok && auth {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusForbidden)
-			w.Write([]byte(`{"error": "Already authenticated"}`))
+			c.JSON(http.StatusForbidden, gin.H{"error": "Already authenticated"})
+			c.Abort()
 			return
 		}
 
-		next.ServeHTTP(w, r)
-	})
+		c.Next()
+	}
 }

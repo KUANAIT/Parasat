@@ -6,7 +6,8 @@ import (
 	"Parasat/sessions"
 	"Parasat/web"
 	"log"
-	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
@@ -23,10 +24,13 @@ func main() {
 	}()
 
 	database.Connect_DB()
-	routes.RegisterRoutes()
-	//routes.RegisterAuthRoutes()
-	web.SetupTemplates()
 
-	log.Println("Server started on :3000")
-	log.Fatal(http.ListenAndServe(":3000", nil))
+	router := gin.Default()
+	routes.RegisterRoutes(router)
+	web.SetupTemplates(router)
+
+	log.Println("Server started on :3001")
+	if err := router.Run(":3001"); err != nil {
+		log.Fatalf("Failed to start server: %v", err)
+	}
 }

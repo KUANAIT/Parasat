@@ -4,53 +4,48 @@ import (
 	"Parasat/database"
 	"Parasat/models"
 	"Parasat/sessions"
-	"encoding/json"
-	"go.mongodb.org/mongo-driver/bson"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
-func LoginCustomer(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
-		return
-	}
-
+func LoginCustomer(c *gin.Context) {
 	var credentials struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&credentials); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&credentials); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
 
 	collection := database.UserCollection
 	if collection == nil {
-		http.Error(w, "User collection not initialized", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "User collection not initialized"})
 		return
 	}
 
 	var user models.User
-	err := collection.FindOne(r.Context(), bson.M{"email": credentials.Email}).Decode(&user)
+	ctx := c.Request.Context()
+	err := collection.FindOne(ctx, bson.M{"email": credentials.Email}).Decode(&user)
 	if err != nil {
-		http.Error(w, "Invalid email or password", http.StatusUnauthorized)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
 		return
 	}
 
 	if !user.CheckPassword(credentials.Password) {
-		http.Error(w, "Invalid email or password", http.StatusUnauthorized)
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
 		return
 	}
 
 	userID := user.ID.Hex()
 
-	if err := sessions.SetUserSession(w, r, userID); err != nil {
-		http.Error(w, "Failed to set session", http.StatusInternalServerError)
+	if err := sessions.SetUserSession(c.Writer, c.Request, userID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to set session"})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Login successful"})
+	c.JSON(http.StatusOK, gin.H{"message": "Login successful"})
 }

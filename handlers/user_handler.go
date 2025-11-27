@@ -3,22 +3,18 @@ package handlers
 import (
 	"Parasat/database"
 	"Parasat/models"
-	"encoding/json"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func CreateUser(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
-		return
-	}
-
+func CreateUser(c *gin.Context) {
 	collection := database.UserCollection
 	if collection == nil {
-		http.Error(w, "User collection not initialized", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "User collection not initialized"})
 		return
 	}
 
@@ -28,13 +24,13 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		Password string `json:"password"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&userData); err != nil {
-		http.Error(w, "Invalid request body: "+err.Error(), http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&userData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body: " + err.Error()})
 		return
 	}
 
 	if userData.Name == "" || userData.Email == "" || userData.Password == "" {
-		http.Error(w, "Name, Email, and Password are required fields", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Name, Email, and Password are required fields"})
 		return
 	}
 
@@ -47,20 +43,21 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := user.HashPassword(); err != nil {
-		http.Error(w, "Failed to hash password: "+err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password: " + err.Error()})
 		return
 	}
 
+	ctx := c.Request.Context()
 	var existingUser models.User
-	err := collection.FindOne(r.Context(), bson.M{"email": user.Email}).Decode(&existingUser)
+	err := collection.FindOne(ctx, bson.M{"email": user.Email}).Decode(&existingUser)
 	if err == nil {
-		http.Error(w, "User with this email already exists", http.StatusConflict)
+		c.JSON(http.StatusConflict, gin.H{"error": "User with this email already exists"})
 		return
 	}
 
-	result, err := collection.InsertOne(r.Context(), user)
+	result, err := collection.InsertOne(ctx, user)
 	if err != nil {
-		http.Error(w, "Failed to create user: "+err.Error(), http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user: " + err.Error()})
 		return
 	}
 
@@ -80,66 +77,58 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		UpdatedAt: user.UpdatedAt,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(responseUser)
+	c.JSON(http.StatusCreated, responseUser)
 }
 
-func GetUser(w http.ResponseWriter, r *http.Request) {
+func GetUser(c *gin.Context) {
 	collection := database.UserCollection
 	if collection == nil {
-		http.Error(w, "User collection not initialized", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "User collection not initialized"})
 		return
 	}
 
-	userID := r.URL.Query().Get("user_id")
+	userID := c.Param("user_id")
 	if userID == "" {
-		http.Error(w, "User ID is required", http.StatusBadRequest)
-		return
+		userID = c.Query("user_id")
+		if userID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "User ID is required"})
+			return
+		}
 	}
 
 	objectID, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
-		http.Error(w, "Invalid customer ID format", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid customer ID format"})
 		return
 	}
 
 	var user models.User
-	err = collection.FindOne(r.Context(), bson.M{"_id": objectID}).Decode(&user)
+	ctx := c.Request.Context()
+	err = collection.FindOne(ctx, bson.M{"_id": objectID}).Decode(&user)
 	if err != nil {
-		if err.Error() == "mongo: no documents in result" {
-			http.Error(w, "User not found", http.StatusNotFound)
-		} else {
-			http.Error(w, "Error retrieving customer", http.StatusInternalServerError)
-		}
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(user)
+	c.JSON(http.StatusOK, user)
 }
 
-func UpdateUser(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPut {
-		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
-		return
-	}
-
+func UpdateUser(c *gin.Context) {
 	collection := database.UserCollection
 	if collection == nil {
-		http.Error(w, "User collection not initialized", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "User collection not initialized"})
 		return
 	}
 
-	userID := r.URL.Query().Get("user_id")
+	userID := c.Query("user_id")
 	if userID == "" {
-		http.Error(w, "User ID is required", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "User ID is required"})
 		return
 	}
 
 	objectID, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
-		http.Error(w, "Invalid user ID format", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID format"})
 		return
 	}
 
@@ -149,8 +138,8 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 		Email    string `json:"email"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&updateData); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&updateData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
 
@@ -167,71 +156,64 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 	if updateData.Password != "" {
 		tempUser := models.User{Password: updateData.Password}
 		if err := tempUser.HashPassword(); err != nil {
-			http.Error(w, "Failed to hash password", http.StatusInternalServerError)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
 			return
 		}
 		updateFields["password"] = tempUser.Password
 	}
 
 	if len(updateFields) == 0 {
-		http.Error(w, "No fields to update", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No fields to update"})
 		return
 	}
 
 	updateFields["updatedat"] = time.Now()
 
-	result, err := collection.UpdateOne(r.Context(), bson.M{"_id": objectID}, bson.M{"$set": updateFields})
+	ctx := c.Request.Context()
+	result, err := collection.UpdateOne(ctx, bson.M{"_id": objectID}, bson.M{"$set": updateFields})
 	if err != nil {
-		http.Error(w, "Failed to update user", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user"})
 		return
 	}
 
 	if result.MatchedCount == 0 {
-		http.Error(w, "User not found", http.StatusNotFound)
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "User updated successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "User updated successfully"})
 }
 
-func DeleteUser(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodDelete {
-		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
-		return
-	}
-
+func DeleteUser(c *gin.Context) {
 	collection := database.UserCollection
 	if collection == nil {
-		http.Error(w, "User collection not initialized", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "User collection not initialized"})
 		return
 	}
 
-	userID := r.URL.Query().Get("user_id")
+	userID := c.Query("user_id")
 	if userID == "" {
-		http.Error(w, "User ID is required", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "User ID is required"})
 		return
 	}
 
 	objectID, err := primitive.ObjectIDFromHex(userID)
 	if err != nil {
-		http.Error(w, "Invalid customer ID format", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid customer ID format"})
 		return
 	}
 
-	result, err := collection.DeleteOne(r.Context(), bson.M{"_id": objectID})
+	ctx := c.Request.Context()
+	result, err := collection.DeleteOne(ctx, bson.M{"_id": objectID})
 	if err != nil {
-		http.Error(w, "Failed to delete user", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete user"})
 		return
 	}
 
 	if result.DeletedCount == 0 {
-		http.Error(w, "User not found", http.StatusNotFound)
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "User deleted successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "User deleted successfully"})
 }

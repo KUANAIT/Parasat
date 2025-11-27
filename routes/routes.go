@@ -3,22 +3,23 @@ package routes
 import (
 	"Parasat/handlers"
 	"Parasat/middleware"
-	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
-func RegisterRoutes() {
-	//http.HandleFunc("/", handlers.HomePage)
-	http.HandleFunc("/users", handlers.CreateUser)
-	http.HandleFunc("/users/get", handlers.GetUser)
-	http.HandleFunc("/users/update", handlers.UpdateUser)
-	http.HandleFunc("/users/delete", handlers.DeleteUser)
-	http.HandleFunc("/loginuser", handlers.LoginCustomer)
-	http.HandleFunc("/profile", handlers.Profile)
-	http.HandleFunc("/edit-profile", middleware.AuthRequired(handlers.EditProfile))
+func RegisterRoutes(router *gin.Engine) {
+	router.POST("/users", handlers.CreateUser)
+	router.GET("/users/get", handlers.GetUser)
+	router.GET("/users/get/:user_id", handlers.GetUser)
+	router.POST("/users/get/:user_id", handlers.GetUser)
+	router.PUT("/users/update", handlers.UpdateUser)
+	router.DELETE("/users/delete", handlers.DeleteUser)
 
-}
+	router.POST("/loginuser", handlers.LoginCustomer)
 
-func RegisterAuthRoutes() {
-	logoutHandler := middleware.AuthRequired(http.HandlerFunc(handlers.LogoutCustomer))
-	http.Handle("/logout", logoutHandler)
+	protected := router.Group("/", middleware.AuthRequired())
+	protected.GET("/profile", handlers.Profile)
+	protected.GET("/edit-profile", handlers.EditProfile)
+	protected.POST("/edit-profile", handlers.EditProfile)
+	protected.POST("/logout", handlers.LogoutCustomer)
 }
