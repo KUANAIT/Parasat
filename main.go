@@ -4,7 +4,7 @@ import (
 	"Parasat/database"
 	"Parasat/routes"
 	"Parasat/sessions"
-	"Parasat/web"
+	//"Parasat/web"
 	"log"
 
 	"github.com/gin-gonic/gin"
@@ -23,11 +23,9 @@ func main() {
 		}
 	}()
 
-	database.Connect_DB()
-
 	router := gin.Default()
 	routes.RegisterRoutes(router)
-	web.SetupTemplates(router)
+	//web.SetupTemplates(router)
 
 	log.Println("Server started on :3001")
 	if err := router.Run(":3001"); err != nil {

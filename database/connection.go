@@ -11,12 +11,23 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var client *mongo.Client
+const (
+	defaultDatabaseName = "Parasat"
+)
+
+var (
+	client *mongo.Client
+)
 
 func ConnectDB() error {
 	uri := os.Getenv("MONGODB_URI")
 	if uri == "" {
-		uri = "mongodb+srv://OSTi:eQQyp4P3elNkQf9r@cluster0.0rfodzy.mongodb.net/fitness?retryWrites=true&w=majority&appName=Cluster0"
+		return fmt.Errorf("MONGODB_URI environment variable is not set")
+	}
+
+	databaseName := os.Getenv("MONGODB_DB")
+	if databaseName == "" {
+		databaseName = defaultDatabaseName
 	}
 
 	clientOptions := options.Client().ApplyURI(uri)
@@ -39,11 +50,17 @@ func ConnectDB() error {
 	return nil
 }
 
-func GetCollection(databaseName, collectionName string) (*mongo.Collection, error) {
+func GetDocument(databaseName, collectionName, documentID string) (*mongo.SingleResult, error) {
 	if client == nil {
 		return nil, fmt.Errorf("MongoDB client is not initialized, call ConnectDB first")
 	}
-	return client.Database(databaseName).Collection(collectionName), nil
+
+	collection := client.Database(databaseName).Collection(collectionName)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result := collection.FindOne(ctx, map[string]interface{}{"_id": documentID})
+	return result, nil
 }
 
 func DisconnectDB() error {
