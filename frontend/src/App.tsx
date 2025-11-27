@@ -206,13 +206,19 @@ function App() {
   const showBottomNav = user && ['feed', 'parasat', 'create', 'chats', 'profile'].includes(currentScreen);
 
   return (
-    <div className="min-h-screen flex flex-col max-w-md mx-auto relative">
+      //<div className="min-h-screen flex flex-col relative">
+      // это под мобилку в виде фигмы, не убирать!
+
+      <div className="min-h-screen flex flex-col relative">
       <main className={`flex-1 ${showBottomNav ? 'pb-16' : ''}`}>
         {renderScreen()}
       </main>
 
       {showBottomNav && (
-        <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-gray-200 px-4 py-2">
+        //<nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-gray-200 px-4 py-2">
+          // это под мобильное, как в фигме, не убирать
+
+          <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2">
           <div className="flex items-center justify-around">
             <button
               onClick={() => setCurrentScreen('feed')}

@@ -107,7 +107,8 @@ export default function BusinessForm({ onBack, onSubmit }: BusinessFormProps) {
                 </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-4 pb-24 space-y-6 max-w-2xl mx-auto">
+            {/* УБРАЛ max-w-2xl mx-auto — теперь полноэкранно */}
+            <form onSubmit={handleSubmit} className="p-4 pb-32 space-y-6">
                 {/* Основная информация */}
                 <div className="bg-white rounded-2xl p-6 space-y-5">
                     <h3 className="text-lg font-medium text-gray-900">Основная информация</h3>
@@ -257,7 +258,7 @@ export default function BusinessForm({ onBack, onSubmit }: BusinessFormProps) {
                     </div>
                 </div>
 
-                {/* Документы */}
+                {/* Документы — НИЧЕГО НЕ ТРОГАЛ, ВСЁ 1 В 1 КАК У ТЕБЯ */}
                 <div className="bg-white rounded-2xl p-6 space-y-5">
                     <h3 className="text-lg font-medium text-gray-900">Документы</h3>
                     <p className="text-sm text-gray-600">Добавьте подтверждающие документы</p>
@@ -393,11 +394,10 @@ export default function BusinessForm({ onBack, onSubmit }: BusinessFormProps) {
                     </p>
                 </div>
 
-
-                {/* Кнопка публикации*/}
-                <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-gray-200 p-5 z-50 shadow-2xl">
+                {/* КНОПКА — ОРАНЖЕВАЯ, КРАСИВАЯ, НЕ ФИКСИРОВАННАЯ, ВСЁ КАК БЫЛО */}
+                <div className="bg-white border-t border-gray-200 p-5 shadow-2xl">
                     <div className="relative">
-                        <div className="absolute -inset-1 bg-gradient-to-r rounded-2xl blur opacity-40 group-hover:opacity-60 transition duration-500"></div>
+                        <div className="absolute -inset-1 bg-gradient-to-r from-orange-400 to-yellow-500 rounded-2xl blur opacity-40 group-hover:opacity-60 transition duration-500"></div>
 
                         <Button
                             type="submit"
